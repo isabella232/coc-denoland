@@ -7,8 +7,8 @@
  * `cli/lsp/language_server.rs` under the method `request_else`.
  */
 
-import { RequestType } from "vscode-languageclient";
-import type { TextDocumentIdentifier } from "vscode-languageclient";
+import { RequestType } from "coc.nvim";
+import type { TextDocumentIdentifier } from "coc.nvim";
 
 export interface CacheParams {
   textDocument: TextDocumentIdentifier;

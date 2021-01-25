@@ -7,7 +7,7 @@ import type {
   TextDocumentContentProvider,
   Uri,
 } from "vscode";
-import type { LanguageClient } from "vscode-languageclient";
+import type { LanguageClient } from "coc.nvim";
 
 export const SCHEME = "deno";
 

@@ -3,13 +3,13 @@
 import * as commands from "./commands";
 import type { Settings } from "./interfaces";
 import { DenoTextDocumentContentProvider, SCHEME } from "./content_provider";
-import * as vscode from "vscode";
+import * as vscode from "coc.nvim";
 import {
   Executable,
   LanguageClient,
   LanguageClientOptions,
   ServerOptions,
-} from "vscode-languageclient";
+} from "coc.nvim";
 
 const EXTENSION_NS = "deno";
 const EXTENSION_TS_PLUGIN = "typescript-deno-plugin";
@@ -33,6 +33,7 @@ function assert(cond: unknown, msg = "Assertion failed."): asserts cond {
   }
 }
 
+/*
 async function getTsApi(): Promise<TsLanguageFeaturesApiV0> {
   const extension: vscode.Extension<TsLanguageFeatures> | undefined = vscode
     .extensions.getExtension(TS_LANGUAGE_FEATURES_EXTENSION);
@@ -44,6 +45,7 @@ async function getTsApi(): Promise<TsLanguageFeaturesApiV0> {
   assert(api, errorMessage);
   return api;
 }
+*/
 
 const settingsKeys: Array<keyof Settings> = [
   "enable",
@@ -66,7 +68,7 @@ function getSettings(): Settings {
 }
 
 let client: LanguageClient;
-let tsApi: TsLanguageFeaturesApiV0;
+let tsApi: undefined;
 
 /** When the extension activates, this function is called with the extension
  * context, and the extension bootstraps itself. */
@@ -123,10 +125,12 @@ export async function activate(
           // information on the event not being reliable.
           { settings: null },
         );
+        /*
         tsApi.configurePlugin(
           EXTENSION_TS_PLUGIN,
           getSettings(),
         );
+        */
       }
     }),
     // Register a content provider for Deno resolved read-only files.
@@ -139,15 +143,17 @@ export async function activate(
   // Register any commands.
   const registerCommand = createRegisterCommand(context);
   registerCommand("cache", commands.cache);
-  registerCommand("status", commands.status);
+  // registerCommand("status", commands.status);
 
   context.subscriptions.push(client.start());
-  tsApi = await getTsApi();
+  // tsApi = await getTsApi();
   await client.onReady();
+  /*
   tsApi.configurePlugin(
     EXTENSION_TS_PLUGIN,
     getSettings(),
   );
+  */
 }
 
 export function deactivate(): Thenable<void> | undefined {

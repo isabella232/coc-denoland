@@ -1,10 +1,10 @@
 {
-  "name": "vscode-deno-canary",
+  "name": "coc-denoland",
   "displayName": "Deno (Canary)",
   "description": "A beta language server client for Deno. Requires Deno 1.6 or better.",
   "author": "Deno Land Inc.",
   "license": "MIT",
-  "version": "0.0.7",
+  "version": "0.1.1",
   "icon": "deno.png",
   "galleryBanner": {
     "color": "#3B3738",
@@ -25,30 +25,25 @@
     "Other"
   ],
   "keywords": [
-    "deno"
+    "deno",
+    "coc.nvim"
   ],
   "engines": {
-    "vscode": "^1.51.0"
+    "coc": "^0.0.80"
   },
   "activationEvents": [
     "onLanguage:typescript",
     "onLanguage:typescriptreact",
     "onLanguage:javascript",
     "onLanguage:javascriptreact",
-    "onCommand:deno.cache",
-    "onCommand:deno.status"
+    "onCommand:deno.cache"
   ],
-  "main": "./client/out/extension",
+  "main": "lib/index.js",
   "contributes": {
     "commands": [
       {
         "command": "deno.cache",
         "title": "Cache Dependencies",
-        "category": "Deno Language Server"
-      },
-      {
-        "command": "deno.status",
-        "title": "Status",
         "category": "Deno Language Server"
       }
     ],
@@ -59,7 +54,7 @@
         "deno.enable": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Controls if the Deno Language Server is enabled. When enabled, the extension will disable the built-in VSCode JavaScript and TypeScript language services, and will use the Deno Language Server (`deno lsp`) instead.\n\n**Not recommended to be enabled globally.**",
+          "markdownDescription": "Controls if the Deno Language Server is enabled. coc-nvim: This will not disable tsserver and eslint extensions, so you should manually disable them. This will use the Deno Language Server (`deno lsp`) instead.\n\n**Not recommended to be enabled globally.**",
           "scope": "window",
           "examples": [
             true,
@@ -132,13 +127,19 @@
     "fmt": "deno fmt client/src typescript-deno-plugin/src",
     "lint": "deno lint --unstable client/src typescript-deno-plugin/src",
     "watch": "tsc -b -w",
-    "postinstall": "cd typescript-deno-plugin && npm i && cd ../client && npm i && cd .."
+    "postinstall": "cd typescript-deno-plugin && npm i && cd ../client && npm i && cd ..",
+    "build": "webpack",
+    "coc:watch": "webpack --watch",
+    "prepare": "npm run build"
   },
   "dependencies": {
-    "typescript-deno-plugin": "./typescript-deno-plugin"
+    "coc.nvim": "0.0.80"
   },
   "devDependencies": {
     "@types/node": "^14.14.7",
-    "typescript": "^4.0.5"
+    "ts-loader": "^8.0.14",
+    "typescript": "^4.1.3",
+    "webpack": "^5.17.0",
+    "webpack-cli": "^4.4.0"
   }
 }

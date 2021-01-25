@@ -3,8 +3,8 @@
 /** Contains handlers for commands that are enabled in Visual Studio Code for
  * the extension. */
 
-import { ExtensionContext, Uri, ViewColumn, window, workspace } from "vscode";
-import { LanguageClient } from "vscode-languageclient";
+import { ExtensionContext, Uri /*, ViewColumn */ , window, workspace } from "coc.nvim";
+import { LanguageClient } from "coc.nvim";
 import { cache as cacheReq } from "./lsp_extensions";
 
 // deno-lint-ignore no-explicit-any
@@ -20,20 +20,18 @@ export function cache(
   _context: ExtensionContext,
   client: LanguageClient,
 ): Callback {
-  return () => {
-    const activeEditor = window.activeTextEditor;
-    if (!activeEditor) {
-      return;
-    }
+  return async () => {
+    const currentState = await workspace.getCurrentState();
     return client.sendRequest(
       cacheReq,
-      { textDocument: { uri: activeEditor.document.uri.toString() } },
+      { textDocument: { uri: currentState.document.uri.toString() } },
     );
   };
 }
 
 /** Open and display the "virtual document" which provides the status of the
  * Deno Language Server. */
+/*
 export function status(
   _context: ExtensionContext,
   _client: LanguageClient,
@@ -45,3 +43,4 @@ export function status(
     return window.showTextDocument(document, ViewColumn.Two, true);
   };
 }
+*/
