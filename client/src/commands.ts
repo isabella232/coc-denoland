@@ -29,6 +29,7 @@ export function cache(
   };
 }
 
+/*
 export function showReferences(
   _content: ExtensionContext,
   client: LanguageClient,
@@ -42,6 +43,7 @@ export function showReferences(
     );
   };
 }
+*/
 
 /** Open and display the "virtual document" which provides the status of the
  * Deno Language Server. */
