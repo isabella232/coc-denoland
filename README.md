@@ -8,6 +8,22 @@ This repository's goal is porting [`vscode_deno`](https://github.com/denoland/vs
 
 Versioning policy is perfectly separated from [`vscode_deno`](https://github.com/denoland/vscode_deno) and `deno`.
 
-- `CocInstall coc-denoland`
-
 Diff to original: https://github.com/denoland/vscode_deno/compare/main...LumaKernel:main
+
+## Installation
+
+1. `CocInstall coc-denoland`
+2. Configure following by `CocConfig` or `CocLocalConfig` in your deno project.
+
+```json
+{
+  "deno.enable": true,
+  "tsserver.enable": false
+}
+```
+
+## Thanks
+
+- [`vscode_deno`](https://github.com/denoland/vscode_deno): The origin of this repository. Forked under the MIT license.
+- [yaegassy](https://github.com/yaegassy) let me know how to make coc plugins.
+- [yuki-yano](https://github.com/yuki-yano) shared me an ideas to implement coc.nvim specific.
