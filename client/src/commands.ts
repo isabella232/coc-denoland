@@ -29,6 +29,22 @@ export function cache(
   };
 }
 
+/*
+export function showReferences(
+  _content: ExtensionContext,
+  client: LanguageClient,
+): Callback {
+  return (uri: string, position: Position, locations: Location[]) => {
+    commands.executeCommand(
+      "editor.action.showReferences",
+      Uri.parse(uri),
+      client.protocol2CodeConverter.asPosition(position),
+      locations.map(client.protocol2CodeConverter.asLocation),
+    );
+  };
+}
+*/
+
 /** Open and display the "virtual document" which provides the status of the
  * Deno Language Server. */
 /*
