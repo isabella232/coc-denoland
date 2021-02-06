@@ -4,7 +4,7 @@
   "description": "Fork of vscode_deno for coc.nvim",
   "author": "Luma",
   "license": "MIT",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "icon": "deno.png",
   "galleryBanner": {
     "color": "#3B3738",
