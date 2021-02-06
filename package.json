@@ -1,8 +1,8 @@
 {
   "name": "coc-denoland",
-  "displayName": "Deno (Canary)",
-  "description": "A beta language server client for Deno. Requires Deno 1.6 or better.",
-  "author": "Deno Land Inc.",
+  "displayName": "coc-denoland",
+  "description": "Fork of vscode_deno for coc.nvim",
+  "author": "Luma",
   "license": "MIT",
   "version": "0.1.1",
   "icon": "deno.png",
@@ -12,12 +12,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/denoland/vscode_deno"
+    "url": "https://github.com/LumaKernel/coc-denoland"
   },
   "bugs": {
-    "url": "https://github.com/denoland/vscode_deno/issues"
+    "url": "https://github.com/LumaKernel/coc-denoland/issues"
   },
-  "publisher": "denoland",
   "categories": [
     "Programming Languages",
     "Formatters",
