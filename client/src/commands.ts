@@ -24,6 +24,7 @@ import {
   Position,
 } from "coc.nvim";
 type DocumentUri = unknown;
+import * as extension from "./extension";
 
 // deno-lint-ignore no-explicit-any
 export type Callback = (...args: any[]) => unknown;
@@ -71,7 +72,6 @@ export function initializeWorkspace(
   return async () => {
     try {
       // NOTE(coc.nvim): vscode_deno uses interactive picking configuration.
-      // Use showPrompt instead.
       // const settings = await pickInitWorkspace();
       const lint = await window.showPrompt("Enable Deno linting?")
       const unstable = await window.showPrompt("Endable Deno unstable APIs?")
@@ -82,12 +82,28 @@ export function initializeWorkspace(
       // await config.update("unstable", settings.unstable);
       await config.update("lint", lint);
       await config.update("unstable", unstable);
+
+      // NOTE(coc.nvim): Configure tsserver and restart.
+      const tsServerConfig = workspace.getConfiguration("tsserver");
+      await tsServerConfig.update("enable", false);
+      await commands.executeCommand("tsserver.restart")
+
       await window.showInformationMessage(
         "Deno is now setup in this workspace.",
       );
     } catch {
       window.showErrorMessage("Deno project initialization failed.");
     }
+  };
+}
+
+// NOTE(coc.nvim): restart command to re-activate
+export function restart(
+  _context: ExtensionContext,
+  _client: LanguageClient,
+): Callback {
+  return async () => {
+    extension.restart()
   };
 }
 
