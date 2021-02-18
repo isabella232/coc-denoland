@@ -23,7 +23,6 @@ import {
   Location,
   Position,
 } from "coc.nvim";
-type DocumentUri = unknown;
 import * as extension from "./extension";
 
 // deno-lint-ignore no-explicit-any
@@ -39,7 +38,7 @@ export function cache(
   _context: ExtensionContext,
   client: LanguageClient,
 ): Callback {
-  return async (uris: DocumentUri[] = []) => {
+  return async () => {
     // NOTE(coc.nvim): currentState instead of active editor
     // const activeEditor = window.activeTextEditor;
     // if (!activeEditor) {
@@ -50,17 +49,19 @@ export function cache(
       // NOTE(coc.nvim): No location
       // location: ProgressLocation.Window,
       title: "caching",
-    }, () => {
-      return client.sendRequest(
-        cacheReq,
-        {
-          referrer: { uri: currentState.document.uri.toString() },
-          textDocument: { uri: currentState.document.uri.toString() },
-          uris: uris.map((uri) => ({
-            uri,
-          })),
-        },
-      );
+    }, async () => {
+      try {
+        await client.sendRequest(
+          cacheReq,
+          {
+            referrer: { uri: currentState.document.uri.toString() },
+            uris: [],
+            textDocument: { uri: currentState.document.uri.toString() },
+          },
+        );
+      } catch(e: unknown) {
+        await window.showErrorMessage("Error while caching.")
+      }
     });
   };
 }
