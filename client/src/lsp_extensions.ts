@@ -12,9 +12,9 @@ import type { TextDocumentIdentifier } from "coc.nvim";
 
 export interface CacheParams {
   referrer: TextDocumentIdentifier;
-  // NOTE(coc.nvim): deno cli spec will change? it is needed now.
-  textDocument: TextDocumentIdentifier;
   uris: TextDocumentIdentifier[];
+  // NOTE(coc.nvim): deno 1.6.x, I will drop support when the time come
+  textDocument: TextDocumentIdentifier;
 }
 
 export const cache = new RequestType<CacheParams, boolean, void>("deno/cache");
