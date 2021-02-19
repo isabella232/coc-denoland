@@ -34,7 +34,7 @@ export type Factory = (
 /** For the current document active in the editor tell the Deno LSP to cache
  * the file and all of its dependencies in the local cache. */
 export function cache(
-  _context: ExtensionContext,
+  context: ExtensionContext,
   client: LanguageClient,
 ): Callback {
   return async () => {
@@ -49,17 +49,25 @@ export function cache(
       // location: ProgressLocation.Window,
       title: "caching",
     }, async () => {
-      try {
-        await client.sendRequest(
-          cacheReq,
-          {
-            referrer: { uri: currentState.document.uri.toString() },
-            uris: [],
-            textDocument: { uri: currentState.document.uri.toString() },
-          },
-        );
-      } catch(e: unknown) {
-        await window.showErrorMessage("Error while caching.")
+      let canceled = false
+      const cancel = () => canceled = true;
+      context.subscriptions.push({
+        dispose: cancel
+      });
+      client.sendRequest(
+        cacheReq,
+        {
+          referrer: { uri: currentState.document.uri.toString() },
+          uris: [],
+          textDocument: { uri: currentState.document.uri.toString() },
+        },
+      ).then(cancel).catch(async (e: unknown) => {
+        cancel();
+        // XXX: For some reason, error occured every time I cache...
+        // await window.showErrorMessage("Error while caching.");
+      });
+      while(!canceled) {
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     });
   };
@@ -73,20 +81,21 @@ export function initializeWorkspace(
     try {
       // NOTE(coc.nvim): vscode_deno uses interactive picking configuration.
       // const settings = await pickInitWorkspace();
-      const lint = await window.showPrompt("Enable Deno linting?")
-      const unstable = await window.showPrompt("Endable Deno unstable APIs?")
+      const lint = await window.showPrompt("Enable Deno linting?");
+      const unstable = await window.showPrompt("Endable Deno unstable APIs?");
 
       const config = workspace.getConfiguration(EXTENSION_NS);
-      await config.update("enable", true);
+      // await config.update("enable", true);
       // await config.update("lint", settings.lint);
       // await config.update("unstable", settings.unstable);
-      await config.update("lint", lint);
-      await config.update("unstable", unstable);
+      config.update("enable", true);
+      config.update("lint", lint);
+      config.update("unstable", unstable);
 
       // NOTE(coc.nvim): Configure tsserver and restart.
       const tsServerConfig = workspace.getConfiguration("tsserver");
-      await tsServerConfig.update("enable", false);
-      await commands.executeCommand("tsserver.restart")
+      tsServerConfig.update("enable", false);
+      await commands.executeCommand("tsserver.restart");
 
       await window.showInformationMessage(
         "Deno is now setup in this workspace.",
