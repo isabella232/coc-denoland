@@ -1,8 +1,100 @@
-# Releases
+# Change Log
 
 Releases of the extension can be downloaded from
 [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=denoland.vscode-deno).
 
+### [3.7.0](https://github.com/denoland/vscode_deno/compare/3.6.1...3.7.0) / 2021.07.02
+
+- feat: add support for import map in test code lens (#446)
+
+  When using the test code lens, the configuration of the import map is
+  reflected in running the test.
+
+- fix: activate extension on markdown / json / jsonc (#447)
+- fix: setting then clearing "deno.path" config should not use empty string for
+  path (#452)
+- fix: better handling when language server fails to start (#454)
+
+### [3.6.1](https://github.com/denoland/vscode_deno/compare/3.6.0...3.6.1) / 2021.06.08
+
+- fix: update packaging and pin vsce version (#440)
+
+### [3.6.0](https://github.com/denoland/vscode_deno/compare/3.5.1...3.6.0) / 2021.06.08
+
+- feat: add support for tasks and test code lens (#436)
+
+  The Deno Language Server as of Deno 1.11, code lenses for test are sent to the
+  client, and the extension now supports allowing those tests to be run in the
+  IDE. In addition, several tasks have been added to the extension which allow
+  users to setup and configure common Deno CLI tasks via the `tasks.json`.
+  Checkout out the [testing](./docs/testing.md) and [tasks](./docs/tasks.md)
+  documentation for more information.
+
+### [3.5.1](https://github.com/denoland/vscode_deno/compare/3.5.0...3.5.1) / 2021.06.02
+
+- fix: bump semver of extension (#429)
+
+  This informs users that they require Deno 1.10.3 or later for the extension to
+  properly work.
+
+### [3.5.0](https://github.com/denoland/vscode_deno/compare/3.4.0...3.5.0) / 2021.06.01
+
+- feat: recognize JSON(C) and markdown files (#404)
+
+  This allows the Deno language server to be used as a formatter for JSON(C) and
+  markdown files.
+
+### [3.4.0](https://github.com/denoland/vscode_deno/compare/3.3.0...3.4.0) / 2021.05.11
+
+- feat: handle per resource configuration (#411)
+
+  Along with Deno v1.10, the extension now supports vscode's multi-root
+  workspaces, which will allow you to enable and disable Deno per workspace
+  folder.
+
+- feat: add `internalDebug` config flag (#406)
+
+  Enabling `deno.internalDebug` to `true` will output additional (quite verbose)
+  logging information to help with diagnosing language server issues. This
+  requires Deno v1.10 or later to work.
+
+- fix: activate on `reloadImportRegistries` command (#407)
+- docs: fix type in `ImportCompletions.md` (#410)
+
+### [3.3.0](https://github.com/denoland/vscode_deno/compare/3.2.0...3.3.0) / 2021.04.13
+
+- feat: add support for import registry completions (#380)
+- feat: add restart language server command (#385)
+- feat: add version notification message (#383)
+- feat: support for relative path resolution (using workspaces) in deno.path
+  (#381)
+
+### [3.2.0](https://github.com/denoland/vscode_deno/compare/3.1.0...3.2.0) / 2021.03.15
+
+- feat: read-add debug support (#351)
+- feat: add settings to affect completions (#368)
+- fix: manual `deno` command resolution on windows (#367)
+
+### [3.1.0](https://github.com/denoland/vscode_deno/compare/3.0.1...3.1.0) / 2021.03.02
+
+- feat: add deno.path setting (#350)
+- fix: activate extension on command (#336)
+- chore: move Releases.md to CHANGELOG.md for better marketplace integration
+  (#344)
+- docs: recommend import_map.json instead of import-map.json (#340)
+
+### [3.0.1](https://github.com/denoland/vscode_deno/compare/3.0.0...3.0.1) / 2021.02.19
+
+- fix: EXTENSION_ID corrected to denoland.vscode-deno extension (#333)
+
+### [3.0.0](https://github.com/denoland/vscode_deno/compare/canary/0.0.10...3.0.0) / 2021.02.19
+
+Canary has been released as the main extension. Use Deno 1.7.5 or later.
+
+- chore: README improvements (#331)
+- feat: use preview instead of display for status (#330)
+- feat: add a welcome screen for extension (#329)
+- fix: typo in init command (#327)
 
 ### [canary/0.0.10](https://github.com/denoland/vscode_deno/compare/canary/0.0.9...canary/0.0.10) / 2021.02.13
 
