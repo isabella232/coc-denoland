@@ -4,7 +4,7 @@
   "description": "Fork of vscode_deno for coc.nvim",
   "author": "Luma",
   "license": "MIT",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "icon": "deno.png",
   "galleryBanner": {
     "color": "#3B3738",
@@ -21,6 +21,7 @@
     "Programming Languages",
     "Formatters",
     "Linters",
+    "Debuggers",
     "Other"
   ],
   "keywords": [
@@ -35,15 +36,94 @@
     "onLanguage:typescriptreact",
     "onLanguage:javascript",
     "onLanguage:javascriptreact",
-    "onCommand:deno.cache"
+    "onLanguage:markdown",
+    "onLanguage:json",
+    "onLanguage:jsonc",
+    "onDebugInitialConfigurations",
+    "onDebugResolve:typescript",
+    "onDebugResolve:typescriptreact",
+    "onDebugResolve:javascript",
+    "onDebugResolve:javascriptreact",
+    "onCommand:deno.cache",
+    "onCommand:deno.welcome",
+    "onCommand:deno.initializeWorkspace",
+    "onCommand:deno.reloadImportRegistries",
+    "onWebviewPanel:welcomeDeno"
   ],
   "main": "lib/index.js",
   "contributes": {
+    "breakpoints": [
+      {
+        "language": "typescript"
+      },
+      {
+        "language": "javascript"
+      },
+      {
+        "language": "typescriptreact"
+      },
+      {
+        "language": "javascriptreact"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "deno",
+        "label": "Deno: Run",
+        "runtime": "deno",
+        "languages": [
+          "typescript",
+          "javascript",
+          "typescriptreact",
+          "javascriptreact"
+        ],
+        "configurationSnippets": [
+          {
+            "label": "Deno: Run",
+            "description": "Run and debug a Deno program.",
+            "body": {
+              "type": "pwa-node",
+              "request": "launch",
+              "program": "^\"\\${workspaceFolder}/${1:main.ts}\"",
+              "cwd": "^\"\\${workspaceFolder}\"",
+              "runtimeExecutable": "deno",
+              "runtimeArgs": [
+                "run",
+                "--inspect=127.0.0.1:${4:9229}",
+                "${3:--allow-all}"
+              ],
+              "attachSimplePort": "^${4:9229}"
+            }
+          }
+        ]
+      }
+    ],
     "commands": [
       {
         "command": "deno.cache",
         "title": "Cache Dependencies",
-        "category": "Deno Language Server"
+        "category": "Deno",
+        "description": "Cache the active workspace document and its dependencies.",
+        "enablement": "deno:lspReady"
+      },
+      {
+        "command": "deno.initializeWorkspace",
+        "title": "Initialize Workspace Configuration",
+        "category": "Deno",
+        "description": "Initialize the workspace configuration for Deno."
+      },
+      {
+        "command": "deno.reloadImportRegistries",
+        "title": "Reload Import Registries Cache",
+        "category": "Deno",
+        "description": "Reload any cached import registry responses.",
+        "enablement": "deno:lspReady"
+      },
+      {
+        "command": "deno.restart",
+        "title": "Restart Language Server",
+        "category": "Deno",
+        "description": "Restart the Deno language server."
       },
       {
         "command": "deno.initializeWorkspace",
@@ -52,23 +132,52 @@
       },
       {
         "command": "deno.status",
-        "title": "Status",
-        "category": "Deno Language Server"
+        "title": "Language Server Status",
+        "category": "Deno",
+        "description": "Provide a status document of the language server.",
+        "enablement": "deno:lspReady"
       },
       {
-        "command": "deno.restart",
-        "title": "Restart Deno Language Server",
-        "category": "Deno Language Server"
+        "command": "deno.welcome",
+        "title": "Welcome",
+        "category": "Deno",
+        "description": "Open the welcome page for the Deno extension."
       }
     ],
     "configuration": {
       "type": "object",
-      "title": "Deno Language Server",
+      "title": "Deno",
       "properties": {
         "deno.enable": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Controls if the Deno Language Server is enabled. coc-nvim: This will not disable tsserver and eslint extensions, so you should manually disable them. This will use the Deno Language Server (`deno lsp`) instead.\n\n**Not recommended to be enabled globally.**",
+          "scope": "resource",
+          "examples": [
+            true,
+            false
+          ]
+        },
+        "deno.path": {
+          "type": "string",
+          "default": null,
+          "markdownDescription": "A path to the `deno` CLI executable. By default, the extension looks for `deno` in the `PATH`, but if set, will use the path specified instead.",
+          "scope": "window",
+          "examples": [
+            "/usr/bin/deno",
+            "C:\\Program Files\\deno\\deno.exe"
+          ]
+        },
+        "deno.cache": {
+          "type": "string",
+          "default": null,
+          "markdownDescription": "A path to the cache directory for Deno. By default, the operating system's cache path plus `deno` is used, or the `DENO_DIR` environment variable, but if set, this path will be used instead.",
+          "scope": "window"
+        },
+        "deno.codeLens.implementations": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Enables or disables the display of code lens information for implementations of items in the code.",
           "scope": "window",
           "examples": [
             true,
@@ -95,15 +204,22 @@
             false
           ]
         },
-        "deno.codeLens.implementations": {
+        "deno.codeLens.test": {
           "type": "boolean",
-          "default": false,
-          "markdownDescription": "Enables or disables the display of code lens information for implementations of items in the code.",
-          "scope": "window",
-          "examples": [
-            true,
-            false
-          ]
+          "default": true,
+          "markdownDescription": "Enables or disables the display of code lenses that allow running of individual tests in the code.",
+          "scope": "resource"
+        },
+        "deno.codeLens.testArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "--allow-all"
+          ],
+          "markdownDescription": "Additional arguments to use with the run test code lens.  Defaults to `[ \"--allow-all\" ]`.",
+          "scope": "resource"
         },
         "deno.config": {
           "type": "string",
@@ -122,10 +238,45 @@
           "markdownDescription": "The file path to an import map. This is the equivalent to using `--import-map` on the command line.\n\n[Import maps](https://deno.land/manual@v1.6.0/linking_to_external_code/import_maps) provide a way to \"relocate\" modules based on their specifiers. The path can either be relative to the workspace, or an absolute path.\n\n**Not recommended to be set globally.**",
           "scope": "window",
           "examples": [
-            "./import-map.json",
-            "/path/to/import-map.json",
-            "C:\\path\\to\\import-map.json"
+            "./import_map.json",
+            "/path/to/import_map.json",
+            "C:\\path\\to\\import_map.json"
           ]
+        },
+        "deno.suggest.autoImports": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window"
+        },
+        "deno.suggest.completeFunctionCalls": {
+          "type": "boolean",
+          "default": false,
+          "scope": "window"
+        },
+        "deno.suggest.names": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window"
+        },
+        "deno.suggest.paths": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window"
+        },
+        "deno.suggest.imports.autoDiscover": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "If enabled, when new hosts/origins are encountered that support import suggestions, you will be prompted to enable or disable it.  Defaults to `true`.",
+          "scope": "window"
+        },
+        "deno.suggest.imports.hosts": {
+          "type": "object",
+          "default": {},
+          "markdownDescription": "Controls which hosts are enabled for import suggestions.",
+          "scope": "window",
+          "examples": {
+            "https://deno.land/": true
+          }
         },
         "deno.unstable": {
           "type": "boolean",
@@ -146,6 +297,16 @@
             true,
             false
           ]
+        },
+        "deno.internalDebug": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Determines if the internal debugging information for the Deno language server will be logged to the _Deno Language Server_ console.",
+          "scope": "window",
+          "examples": [
+            true,
+            false
+          ]
         }
       }
     },
@@ -156,6 +317,131 @@
           "importMap*.json"
         ],
         "url": "./schemas/import_map.schema.json"
+      },
+      {
+        "fileMatch": "deno-import-intellisense.json",
+        "url": "./schemas/deno-import-intellisense.schema.json"
+      }
+    ],
+    "problemPatterns": [
+      {
+        "name": "deno",
+        "patterns": [
+          {
+            "regexp": "^(warning|error): (?:(\\S+) \\[(?:ERROR|WARN)\\]: )?(.*)$",
+            "severity": 1,
+            "code": 2,
+            "message": 3
+          },
+          {
+            "regexp": "^\\s{4}at\\s.*((?:file|http|https|data|blob):[^:]+):(\\d+):(\\d+)$",
+            "file": 1,
+            "line": 2,
+            "column": 3
+          }
+        ]
+      },
+      {
+        "name": "deno-test",
+        "patterns": [
+          {
+            "regexp": "^(\\S+:\\s.*)$",
+            "message": 1
+          },
+          {
+            "regexp": "^\\s{4}at\\s.*((?:file|http|https|data|blob):[^:]+):(\\d+):(\\d+)$",
+            "file": 1,
+            "line": 2,
+            "column": 3
+          }
+        ]
+      },
+      {
+        "name": "deno-lint",
+        "patterns": [
+          {
+            "regexp": "^\\(([^)]*)\\)\\s(.*)$",
+            "code": 1,
+            "message": 2
+          },
+          {
+            "regexp": "^\\s{4}at\\s([^:]+):(\\d+):(\\d+)$",
+            "file": 1,
+            "line": 2,
+            "column": 3
+          }
+        ]
+      }
+    ],
+    "problemMatchers": [
+      {
+        "name": "deno",
+        "owner": "deno-cli",
+        "source": "deno-cli",
+        "fileLocation": [
+          "absolute"
+        ],
+        "pattern": "$deno"
+      },
+      {
+        "name": "deno-test",
+        "owner": "deno-test",
+        "source": "deno-test",
+        "fileLocation": [
+          "absolute"
+        ],
+        "severity": "error",
+        "pattern": "$deno-test"
+      },
+      {
+        "name": "deno-lint",
+        "owner": "deno-lint",
+        "source": "deno-lint",
+        "fileLocation": [
+          "absolute"
+        ],
+        "severity": "warning",
+        "pattern": "$deno-lint"
+      }
+    ],
+    "taskDefinitions": [
+      {
+        "type": "deno",
+        "required": [
+          "command"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string",
+            "description": "The Deno command to run.",
+            "examples": [
+              "bundle",
+              "cache",
+              "compile",
+              "lint",
+              "test"
+            ]
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Arguments to pass to the command."
+          },
+          "env": {
+            "type": "object",
+            "patternProperties": {
+              ".+": {
+                "type": "string"
+              }
+            },
+            "description": "Environment variables to set when executing the command."
+          }
+        }
       }
     ],
     "typescriptServerPlugins": [
@@ -168,8 +454,8 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -b",
-    "fmt": "deno fmt client/src typescript-deno-plugin/src README.md Releases.md",
-    "lint": "deno lint --unstable client/src typescript-deno-plugin/src",
+    "fmt": "deno fmt .vscode .github client/src media typescript-deno-plugin/src typescript-deno-plugin/*.md docs package.json tsconfig.json README.md CHANGELOG.md",
+    "lint": "deno lint --unstable client/src typescript-deno-plugin/src docs",
     "watch": "tsc -b -w",
     "postinstall": "cd typescript-deno-plugin && npm i && cd ../client && npm i && cd ..",
     "build": "webpack",
@@ -185,7 +471,7 @@
     "@semantic-release/npm": "^7.0.10",
     "@types/node": "^14.14.25",
     "ts-loader": "^8.0.14",
-    "typescript": "^4.1.3",
+    "typescript": "^4.3.5",
     "webpack": "^5.17.0",
     "webpack-cli": "^4.4.0"
   }

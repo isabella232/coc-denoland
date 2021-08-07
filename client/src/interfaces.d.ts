@@ -5,6 +5,18 @@
  * contributions made by the extension.
  */
 export interface Settings {
+  cache: boolean;
+  internalDebug: boolean;
+  suggest: {
+    autoImports: boolean;
+    completeFunctionCalls: boolean;
+    names: boolean;
+    paths: boolean;
+    imports: {
+      autoDiscover: boolean;
+      hosts: Record<string, true>;
+    };
+  };
   /** Is the extension enabled or not. */
   enable: boolean;
   /** Settings related to code lens. */
@@ -20,6 +32,6 @@ export interface Settings {
   /** Determine if the extension should be providing linting diagnostics. */
   lint: boolean;
   /** Determine if the extension should be type checking against the unstable
-	 * APIs. */
+   * APIs. */
   unstable: boolean;
 }

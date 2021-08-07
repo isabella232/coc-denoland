@@ -3,8 +3,6 @@ name: Bug report
 about: Create a report to help us improve
 ---
 
-### test
-
 **Describe the bug**
 
 **To Reproduce**
@@ -23,6 +21,4 @@ If applicable, add screenshots to help explain your problem.
 
 **Versions**
 
-vscode: xxx
-deno: xxx
-extension: xxx
+vscode: xxx deno: xxx extension: xxx

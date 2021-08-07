@@ -2,19 +2,28 @@
 
 import * as commands from "./commands";
 import {
+  ENABLEMENT_FLAG,
   EXTENSION_NS,
   EXTENSION_TS_PLUGIN,
   TS_LANGUAGE_FEATURES_EXTENSION,
 } from "./constants";
-import type { Settings } from "./interfaces";
-import { DenoTextDocumentContentProvider, SCHEME } from "./content_provider";
+import {DenoTextDocumentContentProvider, SCHEME} from "./content_provider";
+import {DenoDebugConfigurationProvider} from "./debug_config_provider";
+// import {activateTaskProvider} from "./tasks";
+import type {DenoExtensionContext, Settings} from "./types";
+import {assert} from "./util";
+
+import * as path from "path";
 import * as vscode from "coc.nvim";
+// import {getTsApi} from "./ts_api";
+
 import {
   Executable,
   LanguageClient,
   LanguageClientOptions,
   ServerOptions,
 } from "coc.nvim";
+import {Uri} from "coc.nvim";
 
 interface TsLanguageFeaturesApiV0 {
   configurePlugin(
@@ -23,119 +32,195 @@ interface TsLanguageFeaturesApiV0 {
   ): void;
 }
 
-interface TsLanguageFeatures {
-  getAPI(version: 0): TsLanguageFeaturesApiV0 | undefined;
-}
+// import {getTsApi} from "./ts_api";
 
-/** Assert that the condition is "truthy", otherwise throw. */
-function assert(cond: unknown, msg = "Assertion failed."): asserts cond {
-  if (!cond) {
-    throw new Error(msg);
-  }
-}
+/** The language IDs we care about. */
+const LANGUAGES = [
+  "typescript",
+  "javascript",
+  "typescriptreact",
+  "javascriptreact",
+];
 
-// NOTE(coc.nvim): No tsApi
-/*
-async function getTsApi(): Promise<TsLanguageFeaturesApiV0> {
-  const extension: vscode.Extension<TsLanguageFeatures> | undefined = vscode
-    .extensions.getExtension(TS_LANGUAGE_FEATURES_EXTENSION);
-  const errorMessage =
-    "The Deno extension cannot load the built in TypeScript Language Features. Please try restarting Visual Studio Code.";
-  assert(extension, errorMessage);
-  const languageFeatures = await extension.activate();
-  const api = languageFeatures.getAPI(0);
-  assert(api, errorMessage);
-  return api;
-}
-*/
-
-const settingsKeys: Array<keyof Settings> = [
+/** These are keys of settings that have a scope of window or machine. */
+const workspaceSettingsKeys: Array<keyof Settings> = [
+  "cache",
   "codeLens",
   "config",
   "enable",
   "importMap",
+  "internalDebug",
   "lint",
+  "suggest",
   "unstable",
 ];
 
-function getSettings(): Settings {
-  const settings = vscode.workspace.getConfiguration(EXTENSION_NS);
-  const result = Object.create(null);
-  for (const key of settingsKeys) {
-    const value = settings.inspect(key);
+/** These are keys of settings that can apply to an individual resource, like
+ * a file or folder. */
+const resourceSettingsKeys: Array<keyof Settings> = [
+  "enable",
+  "codeLens",
+];
+
+/** Convert a workspace configuration to `Settings` for a workspace. */
+function configToWorkspaceSettings(
+  config: vscode.WorkspaceConfiguration,
+): Settings {
+  const workspaceSettings = Object.create(null);
+  for (const key of workspaceSettingsKeys) {
+    const value = config.inspect(key);
     assert(value);
-    result[key] = value.workspaceValue ?? value.globalValue ??
+    workspaceSettings[key] = (value as any).workspaceLanguageValue ??
+      value.workspaceValue ??
+      value.globalValue ??
       value.defaultValue;
   }
-  return result;
+  for (const key of resourceSettingsKeys) {
+    const value = config.inspect(key);
+    assert(value);
+    workspaceSettings[key] = (value as any).workspaceLanguageValue ??
+      value.workspaceValue ??
+      value.globalValue ??
+      value.defaultValue;
+  }
+  return workspaceSettings;
 }
 
-let client: LanguageClient;
-let tsApi: TsLanguageFeaturesApiV0;
-let statusBarItem: vscode.StatusBarItem;
+/** Convert a workspace configuration to settings that apply to a resource. */
+function configToResourceSettings(
+  config: vscode.WorkspaceConfiguration,
+): Partial<Settings> {
+  const resourceSettings = Object.create(null);
+  for (const key of resourceSettingsKeys) {
+    const value = config.inspect(key);
+    assert(value);
+    resourceSettings[key] = (value as any).workspaceFolderLanguageValue ??
+      (value as any).workspaceFolderValue ?? (value as any).workspaceLanguageValue ??
+      value.workspaceValue ??
+      value.globalValue ??
+      value.defaultValue;
+  }
+  return resourceSettings;
+}
+
+function getWorkspaceSettings(): Settings {
+  const config = vscode.workspace.getConfiguration(EXTENSION_NS);
+  return configToWorkspaceSettings(config);
+}
+
+function handleConfigurationChange(event: vscode.ConfigurationChangeEvent) {
+  if (event.affectsConfiguration(EXTENSION_NS)) {
+    extensionContext.client?.sendNotification(
+      "workspace/didChangeConfiguration",
+      // We actually set this to empty because the language server will
+      // call back and get the configuration. There can be issues with the
+      // information on the event not being reliable.
+      {settings: null},
+    );
+    extensionContext.workspaceSettings = getWorkspaceSettings();
+    for (
+      const [key, {scope}] of Object.entries(
+        extensionContext.documentSettings,
+      )
+    ) {
+      extensionContext.documentSettings[key] = {
+        scope,
+        settings: configToResourceSettings(
+          vscode.workspace.getConfiguration(EXTENSION_NS, scope.toString()),
+        ),
+      };
+    }
+    extensionContext.tsApi?.refresh();
+
+    // restart when "deno.path" changes
+    if (event.affectsConfiguration("deno.path")) {
+      vscode.commands.executeCommand("deno.restart");
+    }
+  }
+}
+
+function handleDocumentOpen(...documents: vscode.TextDocument[]) {
+  let didChange = false;
+  for (const doc of documents) {
+    if (!LANGUAGES.includes(doc.languageId)) {
+      continue;
+    }
+    const {languageId, uri} = doc;
+    extensionContext.documentSettings[path.normalize(doc.uri)] = {
+      scope: {languageId, uri: Uri.parse(uri)},
+      settings: configToResourceSettings(
+        vscode.workspace.getConfiguration(EXTENSION_NS, uri),
+      ),
+    };
+    didChange = true;
+  }
+  if (didChange) {
+    extensionContext.tsApi?.refresh();
+  }
+}
+
+const extensionContext = {} as DenoExtensionContext;
 
 /** When the extension activates, this function is called with the extension
  * context, and the extension bootstraps itself. */
 export async function activate(
   context: vscode.ExtensionContext,
 ): Promise<void> {
-  const run: Executable = {
-    command: "deno",
-    args: ["lsp"],
-    // deno-lint-ignore no-undef
-    options: { env: { ...process.env, "NO_COLOR": true } },
-  };
-
-  const debug: Executable = {
-    command: "deno",
-    // disabled for now, as this gets super chatty during development
-    // args: ["lsp", "-L", "debug"],
-    args: ["lsp"],
-    // deno-lint-ignore no-undef
-    options: { env: { ...process.env, "NO_COLOR": true } },
-  };
-
-  const serverOptions: ServerOptions = { run, debug };
-  const clientOptions: LanguageClientOptions = {
+  extensionContext.clientOptions = {
     documentSelector: [
-      { scheme: "file", language: "javascript" },
-      { scheme: "file", language: "javascriptreact" },
-      { scheme: "file", language: "typescript" },
-      { scheme: "file", language: "typescriptreact" },
-      { scheme: "deno", language: "javascript" },
-      { scheme: "deno", language: "javascriptreact" },
-      { scheme: "deno", language: "typescript" },
-      { scheme: "deno", language: "typescriptreact" },
+      {scheme: "file", language: "javascript"},
+      {scheme: "file", language: "javascriptreact"},
+      {scheme: "file", language: "typescript"},
+      {scheme: "file", language: "typescriptreact"},
+      {scheme: "deno", language: "javascript"},
+      {scheme: "deno", language: "javascriptreact"},
+      {scheme: "deno", language: "typescript"},
+      {scheme: "deno", language: "typescriptreact"},
+      {scheme: "file", language: "json"},
+      {scheme: "file", language: "jsonc"},
+      {scheme: "file", language: "markdown"},
     ],
     diagnosticCollectionName: "deno",
-    initializationOptions: getSettings(),
+    initializationOptions: getWorkspaceSettings(),
   };
 
-  client = new LanguageClient(
-    "deno-language-server",
-    "Deno Language Server",
-    serverOptions,
-    clientOptions,
+  // When a document opens, the language server will query the client to
+  // determine the specific configuration of a resource, we need to ensure the
+  // the builtin TypeScript language service has the same "view" of the world,
+  // so when Deno is enabled, we need to disable the built in language service,
+  // but this is determined on a file by file basis.
+  vscode.workspace.onDidOpenTextDocument(
+    handleDocumentOpen,
+    extensionContext,
+    context.subscriptions,
   );
 
-  // statusBarItem = vscode.window.createStatusBarItem(
+  // Send a notification to the language server when the configuration changes
+  // as well as update the TypeScript language service plugin
+  vscode.workspace.onDidChangeConfiguration(
+    handleConfigurationChange,
+    extensionContext,
+    context.subscriptions,
+  );
+
+  // NOTE(coc.nvim): createStatusBarItem
+  // extensionContext.statusBarItem = vscode.window.createStatusBarItem(
   //   vscode.StatusBarAlignment.Right,
   //   0,
   // );
-  // NOTE(coc.nvim): createStatusBarItem
-  statusBarItem = vscode.window.createStatusBarItem(0);
-  context.subscriptions.push(statusBarItem);
+  extensionContext.statusBarItem = vscode.window.createStatusBarItem(0);
+  context.subscriptions.push(extensionContext.statusBarItem);
 
   context.subscriptions.push(
     // Send a notification to the language server when the configuration changes
     vscode.workspace.onDidChangeConfiguration((evt) => {
       if (evt.affectsConfiguration(EXTENSION_NS)) {
-        client.sendNotification(
+        extensionContext.client?.sendNotification(
           "workspace/didChangeConfiguration",
           // We actually set this to empty because the language server will
           // call back and get the configuration. There can be issues with the
           // information on the event not being reliable.
-          { settings: null },
+          {settings: null},
         );
         // NOTE(coc.nvim): No tsApi
         /*
@@ -149,39 +234,70 @@ export async function activate(
     // Register a content provider for Deno resolved read-only files.
     vscode.workspace.registerTextDocumentContentProvider(
       SCHEME,
-      new DenoTextDocumentContentProvider(client),
+      new DenoTextDocumentContentProvider(extensionContext),
     ),
   );
+
+  // NOTE(coc.nvim): no debug feature
+  // context.subscriptions.push(
+  //   vscode.debug.registerDebugConfigurationProvider(
+  //     "deno",
+  //     new DenoDebugConfigurationProvider(getWorkspaceSettings),
+  //   ),
+  // );
+
+  // NOTE(coc.nvim): no tasks feature
+  // Activate the task provider.
+  // context.subscriptions.push(activateTaskProvider());
 
   // Register any commands.
   const registerCommand = createRegisterCommand(context);
   registerCommand("cache", commands.cache);
   registerCommand("initializeWorkspace", commands.initializeWorkspace);
+  registerCommand("restart", commands.startLanguageServer);
+  registerCommand("reloadImportRegistries", commands.reloadImportRegistries);
   // registerCommand("showReferences", commands.showReferences);
   registerCommand("status", commands.status);
+  // registerCommand("test", commands.test);
+  // registerCommand("welcome", commands.welcome);
 
-  context.subscriptions.push(client.start());
-  // tsApi = await getTsApi();
-  await client.onReady();
-  const serverVersion =
-    (client.initializeResult?.serverInfo?.version ?? "").split(" ")[0];
-  statusBarItem.text = `Deno ${serverVersion}`;
+  const client = extensionContext.client
+  if (client) {
+    context.subscriptions.push(client.start());
+    await client.onReady();
+    const serverVersion =
+      (client.initializeResult?.serverInfo?.version ?? "").split(" ")[0];
+    extensionContext.statusBarItem.text = `Deno ${serverVersion}`;
+    extensionContext.statusBarItem.show();
+  }
   // NOTE(coc.nvim): No tooltip
   // statusBarItem.tooltip = client.initializeResult?.serverInfo?.version;
-  statusBarItem.show();
   // NOTE(coc.nvim): No tsApi
-  /*
-  tsApi.configurePlugin(
-    EXTENSION_TS_PLUGIN,
-    getSettings(),
-  );
-  */
+  // extensionContext.tsApi = getTsApi(() => ({
+  //   documents: extensionContext.documentSettings,
+  //   workspace: extensionContext.workspaceSettings,
+  // }));
+
+  extensionContext.documentSettings = {};
+  extensionContext.workspaceSettings = getWorkspaceSettings();
+
+  // when we activate, it might have been because a document was opened that
+  // activated us, which we need to grab the config for and send it over to the
+  // plugin
+  handleDocumentOpen(...vscode.workspace.textDocuments);
+
+  await commands.startLanguageServer(context, extensionContext)();
 }
 
 export function deactivate(): Thenable<void> | undefined {
-  if (!client) {
+  if (!extensionContext.client) {
     return undefined;
   }
+
+  const client = extensionContext.client;
+  extensionContext.client = undefined;
+  extensionContext.statusBarItem.hide();
+  // vscode.commands.executeCommand("setContext", ENABLEMENT_FLAG, false);
   return client.stop();
 }
 
@@ -194,11 +310,11 @@ function createRegisterCommand(
     name: string,
     factory: (
       context: vscode.ExtensionContext,
-      client: LanguageClient,
+      extensionContext: DenoExtensionContext,
     ) => commands.Callback,
   ): void {
     const fullName = `${EXTENSION_NS}.${name}`;
-    const command = factory(context, client);
+    const command = factory(context, extensionContext);
     context.subscriptions.push(
       vscode.commands.registerCommand(fullName, command),
     );

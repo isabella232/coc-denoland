@@ -22,7 +22,13 @@ Diff to original: https://github.com/denoland/vscode_deno/compare/main...LumaKer
 }
 ```
 
-## Thanks
+Most changes and feature enhancements do not require changes to the extension
+though, as most information comes from the Deno Language Server itself, which is
+integrated into the Deno CLI. Please check out the
+[contribution guidelines](https://github.com/denoland/deno/tree/master/docs/contributing)
+for the Deno CLI.
+
+## Credits
 
 - [`vscode_deno`](https://github.com/denoland/vscode_deno): The origin of this repository. Forked under the MIT license.
 - [yaegassy](https://github.com/yaegassy) let me know how to make coc plugins.
