@@ -42,8 +42,7 @@
     "onCommand:deno.cache",
     "onCommand:deno.welcome",
     "onCommand:deno.initializeWorkspace",
-    "onCommand:deno.reloadImportRegistries",
-    "onWebviewPanel:welcomeDeno"
+    "onCommand:deno.reloadImportRegistries"
   ],
   "main": "lib/index.js",
   "contributes": {
