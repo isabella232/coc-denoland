@@ -1,3 +1,7 @@
+# ⚠️ DEPRECATED ⚠️
+
+Please consider using https://github.com/fannheyward/coc-deno .
+
 # coc-denoland
 
 [![](https://img.shields.io/npm/v/coc-denoland?style=flat-square)](https://www.npmjs.com/package/coc-denoland)
